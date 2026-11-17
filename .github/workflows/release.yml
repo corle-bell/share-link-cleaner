@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.1.1)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Determine tag
+        id: meta
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ "$VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "::error::Tag $TAG does not match manifest.json version $MANIFEST_VERSION"
+            exit 1
+          fi
+
+      - name: Test
+        run: |
+          for f in *.js test/*.js; do node --check "$f"; done
+          node test/extract.test.js
+
+      - name: Package
+        run: |
+          NAME="share-link-cleaner-${{ steps.meta.outputs.tag }}"
+          mkdir -p "dist/share-link-cleaner"
+          cp -r manifest.json *.js *.html icons README.md LICENSE "dist/share-link-cleaner/"
+          cd dist && zip -r "../$NAME.zip" share-link-cleaner
+          echo "ZIP=$NAME.zip" >> "$GITHUB_ENV"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --clobber
+          else
+            gh release create "$TAG" "$ZIP" --title "$TAG" --generate-notes
+          fi
