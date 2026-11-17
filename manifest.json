@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "分享链接清理",
+  "version": "1.1.1",
+  "description": "从抖音、小红书、淘宝等 App 分享文案中提取真实链接，并用快捷键或地址栏关键字打开。",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "分享链接清理",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "omnibox": {
+    "keyword": "u"
+  },
+  "commands": {
+    "open-cleaned-url": {
+      "suggested_key": {
+        "default": "Alt+V",
+        "mac": "Alt+V"
+      },
+      "description": "从剪贴板提取链接并在当前标签页打开"
+    }
+  },
+  "permissions": [
+    "clipboardRead",
+    "clipboardWrite",
+    "notifications",
+    "activeTab",
+    "scripting"
+  ],
+  "minimum_chrome_version": "116"
+}
